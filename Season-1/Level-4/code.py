@@ -89,28 +89,13 @@ class DB_CRUD_ops(object):
             cur = db_con.cursor()
 
             res = "[METHOD EXECUTED] get_stock_info\n"
-            query = "SELECT * FROM stocks WHERE symbol = '{0}'".format(stock_symbol)
+            query = "SELECT * FROM stocks WHERE symbol = ?"
             res += "[QUERY] " + query + "\n"
 
-            # a block list (aka restricted characters) that should not exist in user-supplied input
-            restricted_chars = ";%&^!#-"
-            # checks if input contains characters from the block list
-            has_restricted_char = any([char in query for char in restricted_chars])
-            # checks if input contains a wrong number of single quotes against SQL injection
-            correct_number_of_single_quotes = query.count("'") == 2
-
-            # performs the checks for good cyber security and safe software against SQL injection
-            if has_restricted_char or not correct_number_of_single_quotes:
-                # in case you want to sanitize user input, please uncomment the following 2 lines
-                # sanitized_query = query.translate({ord(char):None for char in restricted_chars})
-                # res += "[SANITIZED_QUERY]" + sanitized_query + "\n"
-                res += "CONFIRM THAT THE ABOVE QUERY IS NOT MALICIOUS TO EXECUTE"
-            else:
-                cur.execute(query)
-
-                query_outcome = cur.fetchall()
-                for result in query_outcome:
-                    res += "[RESULT] " + str(result)
+            cur.execute(query, (stock_symbol,))
+            query_outcome = cur.fetchall()
+            for result in query_outcome:
+                res += "[RESULT] " + str(result)
             return res
 
         except sqlite3.Error as e:
@@ -133,16 +118,13 @@ class DB_CRUD_ops(object):
             cur = db_con.cursor()
 
             res = "[METHOD EXECUTED] get_stock_price\n"
-            query = "SELECT price FROM stocks WHERE symbol = '" + stock_symbol + "'"
+            query = "SELECT price FROM stocks WHERE symbol = ?"
             res += "[QUERY] " + query + "\n"
-            if ';' in query:
-                res += "[SCRIPT EXECUTION]\n"
-                cur.executescript(query)
-            else:
-                cur.execute(query)
-                query_outcome = cur.fetchall()
-                for result in query_outcome:
-                    res += "[RESULT] " + str(result) + "\n"
+
+            cur.execute(query, (stock_symbol,))
+            query_outcome = cur.fetchall()
+            for result in query_outcome:
+                res += "[RESULT] " + str(result) + "\n"
             return res
 
         except sqlite3.Error as e:
@@ -167,10 +149,10 @@ class DB_CRUD_ops(object):
 
             res = "[METHOD EXECUTED] update_stock_price\n"
             # UPDATE stocks SET price = 310.0 WHERE symbol = 'MSFT'
-            query = "UPDATE stocks SET price = '%d' WHERE symbol = '%s'" % (price, stock_symbol)
+            query = "UPDATE stocks SET price = ? WHERE symbol = ?"
             res += "[QUERY] " + query + "\n"
 
-            cur.execute(query)
+            cur.execute(query, (price, stock_symbol))
             db_con.commit()
             query_outcome = cur.fetchall()
             for result in query_outcome:
@@ -183,67 +165,14 @@ class DB_CRUD_ops(object):
         finally:
             db_con.close()
 
-    # executes multiple queries
-    # Example: SELECT price FROM stocks WHERE symbol = 'MSFT';
-    #          SELECT * FROM stocks WHERE symbol = 'MSFT'
-    # Example: UPDATE stocks SET price = 310.0 WHERE symbol = 'MSFT'
+    # REMOVED: exec_multi_query method was removed as it allows arbitrary SQL execution
+    # which is a security risk. Use specific methods like get_stock_info, get_stock_price,
+    # and update_stock_price instead.
     def exec_multi_query(self, query):
-        # building database from scratch as it is more suitable for the purpose of the lab
-        db = Create()
-        con = Connect()
-        try:
-            path = os.path.dirname(os.path.abspath(__file__))
-            db_path = os.path.join(path, 'level-4.db')
-            db_con = con.create_connection(db_path)
-            cur = db_con.cursor()
+        return "ERROR: This method has been disabled for security reasons. Use specific database methods instead."
 
-            res = "[METHOD EXECUTED] exec_multi_query\n"
-            for query in filter(None, query.split(';')):
-                res += "[QUERY]" + query + "\n"
-                query = query.strip()
-                cur.execute(query)
-                db_con.commit()
-
-                query_outcome = cur.fetchall()
-                for result in query_outcome:
-                    res += "[RESULT] " + str(result) + " "
-            return res
-
-        except sqlite3.Error as e:
-            print(f"ERROR: {e}")
-
-        finally:
-            db_con.close()
-
-    # executes any query or multiple queries as defined from the user in the form of script
-    # Example: SELECT price FROM stocks WHERE symbol = 'MSFT';
-    #          SELECT * FROM stocks WHERE symbol = 'MSFT'
+    # REMOVED: exec_user_script method was removed as it allows arbitrary SQL execution
+    # which is a security risk. Use specific methods like get_stock_info, get_stock_price,
+    # and update_stock_price instead.
     def exec_user_script(self, query):
-        # building database from scratch as it is more suitable for the purpose of the lab
-        db = Create()
-        con = Connect()
-        try:
-            path = os.path.dirname(os.path.abspath(__file__))
-            db_path = os.path.join(path, 'level-4.db')
-            db_con = con.create_connection(db_path)
-            cur = db_con.cursor()
-
-            res = "[METHOD EXECUTED] exec_user_script\n"
-            res += "[QUERY] " + query + "\n"
-            if ';' in query:
-                res += "[SCRIPT EXECUTION]"
-                cur.executescript(query)
-                db_con.commit()
-            else:
-                cur.execute(query)
-                db_con.commit()
-                query_outcome = cur.fetchall()
-                for result in query_outcome:
-                    res += "[RESULT] " + str(result)
-            return res
-
-        except sqlite3.Error as e:
-            print(f"ERROR: {e}")
-
-        finally:
-            db_con.close()
+        return "ERROR: This method has been disabled for security reasons. Use specific database methods instead."
