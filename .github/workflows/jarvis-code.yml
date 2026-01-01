@@ -24,7 +24,7 @@ jobs:
       contents: read
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Check GitHub Status
         run: |
           STATUS=$(curl -s https://www.githubstatus.com/api/v2/status.json | jq -r '.status.description')
