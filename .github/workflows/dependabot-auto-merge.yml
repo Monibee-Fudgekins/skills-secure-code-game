@@ -56,7 +56,7 @@ jobs:
           deadline=$(( $(date +%s) + 40 * 60 ))
           while :; do
             runs="$(gh api --paginate "repos/$GH_REPO/commits/$HEAD_SHA/check-runs?per_page=100" \
-              --jq ".check_runs[] | select(.name != env.SELF_CHECK) | [.name, .status, (.conclusion // \"")] | @tsv")"
+              --jq '.check_runs[] | select(.name != env.SELF_CHECK) | [.name, .status, (.conclusion // "")] | @tsv'
             statuses="$(gh api "repos/$GH_REPO/commits/$HEAD_SHA/status" \
               --jq '.statuses[] | [.context, .state] | @tsv')"
             pending=0; failed=""
