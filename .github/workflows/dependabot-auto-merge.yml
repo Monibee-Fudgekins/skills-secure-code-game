@@ -1,7 +1,8 @@
-name: Dependabot auto-merge
+name: Auto-merge
 
-# Owner decision: Dependabot patch + minor updates merge with no human review once
-# CI is green; majors are labelled for manual review. With the 7-day cooldown in
+# Owner decision (2026-11-26): EVERYTHING merges automatically once CI is green —
+# Dependabot patch, minor AND major updates, plus release-please release PRs.
+# Nothing is held for manual review. With the 7-day cooldown in
 # .github/dependabot.yml, nothing is proposed until it has been public for a week.
 #
 # Why this waits for CI itself instead of `gh pr merge --auto`: main has no required
@@ -20,35 +21,28 @@ permissions:
 
 jobs:
   auto-merge:
-    name: Auto-merge Dependabot PRs
+    name: Auto-merge
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    if: >
+      github.event.pull_request.user.login == 'dependabot[bot]' ||
+      (github.event.pull_request.user.login == 'github-actions[bot]' &&
+       startsWith(github.event.pull_request.title, 'chore(main): release'))
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_REPO: ${{ github.repository }}
       PR_URL: ${{ github.event.pull_request.html_url }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      SELF_CHECK: Auto-merge Dependabot PRs
+      SELF_CHECK: Auto-merge
     steps:
       - name: Fetch Dependabot metadata
         id: metadata
+        if: github.event.pull_request.user.login == 'dependabot[bot]'
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0 — pinned to a commit (third-party action with write access)
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Major version bumps get a label for manual review (never auto-merged).
-      - name: Label major updates for review
-        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
-        run: |
-          gh label create "major-update" --color "e11d48" --description "Major version bump — needs manual review" --force
-          gh label create "needs-review" --color "f59e0b" --description "Needs manual review before merging" --force
-          gh pr edit "$PR_URL" --add-label "major-update,needs-review"
-
-      - name: Wait for every other check, then merge (patch + minor only)
-        if: |
-          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
-          steps.metadata.outputs.update-type == 'version-update:semver-minor'
+      - name: Wait for every other check, then merge
         run: |
           set -euo pipefail
           # Give the other workflows and external apps time to register.
@@ -56,7 +50,7 @@ jobs:
           deadline=$(( $(date +%s) + 40 * 60 ))
           while :; do
             runs="$(gh api --paginate "repos/$GH_REPO/commits/$HEAD_SHA/check-runs?per_page=100" \
-              --jq '.check_runs[] | select(.name != env.SELF_CHECK) | [.name, .status, (.conclusion // "")] | @tsv'
+              --jq ".check_runs[] | select(.name != env.SELF_CHECK) | [.name, .status, (.conclusion // \"\")] | @tsv")"
             statuses="$(gh api "repos/$GH_REPO/commits/$HEAD_SHA/status" \
               --jq '.statuses[] | [.context, .state] | @tsv')"
             pending=0; failed=""
